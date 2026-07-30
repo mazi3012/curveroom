@@ -3,7 +3,7 @@ from typing import List
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://neondb_owner:npg_O8iUBfpnlsV4@ep-frosty-pine-azesd16e-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+    DATABASE_URL: str = "postgresql+asyncpg://neondb_owner:npg_O8iUBfpnlsV4@ep-frosty-pine-azesd16e-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?channel_binding=require"
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
