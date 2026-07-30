@@ -1,0 +1,44 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "frontend/package.json",
+            "use": "@vercel/next",
+            "config": {
+                "outputDirectory": ".next",
+                "zeroConfig": true
+            }
+        },
+        {
+            "src": "backend/main.py",
+            "use": "@vercel/python",
+            "config": {
+                "runtime": "python-3.11",
+                "outputDirectory": "."
+            }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/(.*)",
+            "dest": "backend/main.py"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "frontend"
+        }
+    ],
+    "env": {
+        "NEXT_PUBLIC_API_URL": "https://${BACKEND_SERVICE_NAME}.onrender.com",
+        "DATABASE_URL": "@database_url",
+        "REDIS_URL": "@redis_url",
+        "JWT_SECRET": "@jwt_secret",
+        "JWT_ALGORITHM": "HS256",
+        "ACCESS_TOKEN_EXPIRE_MINUTES": "30",
+        "REFRESH_TOKEN_EXPIRE_DAYS": "7",
+        "FRONTEND_URL": "https://${FRONTEND_SERVICE_NAME}.onrender.com",
+        "LIVEKIT_URL": "@livekit_url",
+        "LIVEKIT_API_KEY": "@livekit_api_key",
+        "LIVEKIT_API_SECRET": "@livekit_api_secret"
+    }
+}
