@@ -1,0 +1,89 @@
+#!/bin/bash
+
+# CurveRoom Startup Script
+# Starts all services for local development
+
+set -e
+
+echo "🚀 Starting CurveRoom services..."
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Change to script directory
+cd "$(dirname "$0")"
+
+# Check if Docker is running
+if ! docker info > /dev/null 2>&1; then
+    echo -e "${RED}❌ Docker is not running. Please start Docker first.${NC}"
+    exit 1
+fi
+
+echo -e "${YELLOW}📦 Building and starting services...${NC}"
+
+# Make scripts executable
+chmod +x backend/wait-for-it.sh 2>/dev/null || true
+
+# Stop any existing containers first
+echo "Stopping existing containers..."
+docker-compose down --remove-orphans 2>/dev/null || true
+
+# Build and start all services
+docker-compose up -d --build
+
+# Wait for services to be healthy
+echo ""
+echo -e "${YELLOW}⏳ Waiting for services to start...${NC}"
+
+MAX_RETRIES=30
+RETRY_COUNT=0
+
+# Check backend health
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ Backend is ready!${NC}"
+        break
+    fi
+    echo "Waiting for backend... ($((RETRY_COUNT + 1))/$MAX_RETRIES)"
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    sleep 2
+done
+
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+    echo -e "${RED}❌ Backend failed to start. Check logs with: docker-compose logs backend${NC}"
+fi
+
+# Check frontend health
+sleep 5
+if curl -s http://localhost:3000 > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Frontend is ready!${NC}"
+else
+    echo -e "${YELLOW}⚠️ Frontend may still be starting...${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}✅ All services started successfully!${NC}"
+echo ""
+echo "📝 Services available at:"
+echo "   - Frontend:    http://localhost:3000"
+echo "   - Backend API: http://localhost:8000"
+echo "   - API Docs:    http://localhost:8000/docs"
+echo "   - LiveKit:     http://localhost:7880"
+echo "   - PostgreSQL:  localhost:5432"
+echo "   - Redis:       localhost:6379"
+echo ""
+echo -e "${YELLOW}🔑 Mock Authentication Enabled${NC}"
+echo "   Login with any email/password combination:"
+echo "   - interviewer@test.com → Interviewer role"
+echo "   - candidate@test.com   → Candidate role"
+echo "   - admin@test.com       → Admin role"
+echo "   (Role is determined by email prefix)"
+echo ""
+echo "📋 To view logs:     docker-compose logs -f"
+echo "📋 To view backend:  docker-compose logs -f backend"
+echo "📋 To view frontend: docker-compose logs -f frontend"
+echo "🛑 To stop:          docker-compose down"
+echo "🛑 To stop & remove: docker-compose down -v"

@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: curveroom_postgres
+    environment:
+      POSTGRES_USER: curveroom
+      POSTGRES_PASSWORD: curveroom123
+      POSTGRES_DB: curveroom
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - curveroom_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: curveroom_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - curveroom_network
+
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: curveroom_livekit
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    environment:
+      - LIVEKIT_SECRET=your-super-secret-jwt-key-change-in-production
+      - LIVEKIT_API_KEY=curveroom_api_key
+      - LIVEKIT_API_SECRET=curveroom_api_secret_12345
+    networks:
+      - curveroom_network
+    command: >
+      dev --bind 0.0.0.0
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: curveroom_backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://curveroom:curveroom123@postgres:5432/curveroom
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+    depends_on:
+      - postgres
+      - redis
+      - livekit
+    networks:
+      - curveroom_network
+    command: ["./wait-for-it.sh", "postgres:5432", "--", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: curveroom_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_LIVEKIT_URL: http://localhost:7880
+      NEXT_PUBLIC_LIVEKIT_API_KEY: curveroom_api_key
+    depends_on:
+      - backend
+    networks:
+      - curveroom_network
+
+networks:
+  curveroom_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
