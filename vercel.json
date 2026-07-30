@@ -8,24 +8,19 @@
                 "outputDirectory": ".next",
                 "zeroConfig": true
             }
-        },
-        {
-            "src": "backend/main.py",
-            "use": "@vercel/python",
-            "config": {
-                "runtime": "python-3.11",
-                "outputDirectory": "."
-            }
         }
     ],
     "routes": [
         {
             "src": "/api/(.*)",
-            "dest": "backend/main.py"
+            "dest": "${NEXT_PUBLIC_API_URL}/api/$1",
+            "headers": {
+                "Access-Control-Allow-Origin": "*"
+            }
         },
         {
             "src": "/(.*)",
-            "dest": "frontend"
+            "dest": "frontend/$1"
         }
     ],
     "env": {
